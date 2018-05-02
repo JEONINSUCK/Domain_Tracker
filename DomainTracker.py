@@ -1,7 +1,7 @@
-import socket, requests, os, sys, getopt
-from bs4 import BeautifulSoup
+import socket, sys, getopt, Shodan
 
 class DomainTracker():
+    shodan = Shodan.Shodan()
     id = "0"
     thread = 0
     fileName = ""
@@ -88,7 +88,10 @@ class DomainTracker():
         pass
 
     def runDetail(self, Domain):
-        print(Domain)
+        print("[+]"+Domain)
+        self.shodan.setHostAppend(socket.gethostbyname(Domain))
+        self.shodan.run()
+        print(str(self.shodan.getResult()))
         pass
 
     def updateIndex(self, index):
@@ -108,11 +111,11 @@ class DomainTracker():
         print("\nUsage\n")
         print('Usage: ' + sys.argv[0] + ' Domain [Options]')
 
-        print("\nExample : DomainTracker.py google.com -T 2 -D\n")
+        print("\nExample : DomainTracker.py google.com -t 2 -d\n")
         print("[Options]")
         print("  -f --file <Path&FileName>")
         print(
-            "\tDomain List File .txt, Format Is 1 Line 1 Domain, not use ',' And Do not Support Deep Search This Option")
+            "\tDomain List File .txt, Format Is 1 Line 1 Domain, not use ','\n\tAnd Do not Support Deep Search This Option")
         print("  -t --thread <N>")
         print("\tUsing thread and Max Count is N")
         print("  -d --deep")
@@ -144,12 +147,17 @@ class DomainTracker():
                     else:
                         self.struct[self.id]["Domain"] = arg
                     if (arg == "-T" or (arg == "--THREAD")):
-                        self.thread = sys.argv[index+1]
-                        print("Set-Option is thread : " + str(self.thread))
+                        try:
+                            self.thread = sys.argv[index+1]
+                            print("Set-Option is thread : " + str(self.thread))
+                        except:
+                            print("[t|T] N - 'N' is thread Count ")
                     elif (arg == "-F" or (arg == "--File")):
                         self.fileName = sys.argv[index+1]
                         if self.fileName.find('"'):
                             self.fileName = self.fileName.replace('"', "")
+                        else:
+                            self.fileName = self.fileName
                         print("Set-Option is file : "+str(self.fileName))
                     elif (arg == "-D") or (arg == "--DEEP"):
                         self.searchDeepBool = True
