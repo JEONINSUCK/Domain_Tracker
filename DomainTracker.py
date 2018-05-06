@@ -1,101 +1,61 @@
-import socket, sys, getopt, Shodan
+import socket, sys, getopt, Shodan, whoIs
+from optparse import OptionParser
 
 class DomainTracker():
-    shodan = Shodan.Shodan()
-    id = "0"
-    thread = 0
-    fileName = ""
-    searchDeepBool = False
-    struct = {
-        str(id):
-            {
-                "Domain": "",
-                "IP": "",
-                "SubDomainList": [],
-                "RegisterWhoisServer": "",
-                "RegisterEmail": "",
-                "AdminEmail": "",
-                "AdminPhone": "",
-                "Deep": True,
-                "UseShodanInfo": True,
-                "UseShodanInfoData": {
-                    "City": "",
-                    "Country": "",
-                    "Orqanization": "",
-                    "ISP": "",
-                    "LastUpdate": "",
-                    "HostName": "",
-                    "OS": "",
-                    "WebService": True,
-                    "WebServiceData": {
-                        "Port": 0,
-                        "Type": "",
-                        "Version": ""
-                    },
-                    "TunnelingService": True,
-                    "TunnelServiceData": {
-                        "Version": "",
-                        "Type": ""
-                    },
-                    "OthersServicePort": [],
-                    "OthersDataList": []
-                },
-            }
-    }
-    rs_get = ""
+
     def __init__(self):
-        # self.id = "0"
-        # self.thread = 0
-        # self.fileName = ""
-        # self.searchDeepBool = False
-        # self.struct = {
-        #     str(self.index):
-        #         {
-        #             "Domain": "",
-        #             "IP": "",
-        #             "SubDomainList": [],
-        #             "RegisterWhoisServer": "",
-        #             "RegisterEmail": "",
-        #             "AdminEmail": "",
-        #             "AdminPhone": "",
-        #             "Deep": True,
-        #             "UseShodanInfo": True,
-        #             "UseShodanInfoData": {
-        #                 "City": "",
-        #                 "Country": "",
-        #                 "Orqanization": "",
-        #                 "ISP": "",
-        #                 "LastUpdate": "",
-        #                 "HostName": "",
-        #                 "OS": "",
-        #                 "WebService": True,
-        #                 "WebServiceData": {
-        #                     "Port": 0,
-        #                     "Type": "",
-        #                     "Version": ""
-        #                 },
-        #                 "TunnelingService": True,
-        #                 "TunnelServiceData": {
-        #                     "Version": "",
-        #                     "Type": ""
-        #                 },
-        #                 "OthersServicePort": [],
-        #                 "OthersDataList": []
-        #             },
-        #         }
-        # }
-        # self.rs_get = ""
-        pass
+        self.struct = {
+            "IP": "",
+            "SubDomainList": [],
+            "RegisterWhoisServer": "",
+            "RegisterEmail": "",
+            "AdminEmail": "",
+            "AdminPhone": "",
+            "UseShodanInfoData": {
+                "City": "",
+                "Country": "",
+                "Orqanization": "",
+                "ISP": "",
+                "LastUpdate": "",
+                "HostName": "",
+                "OS": "",
+                "WebServiceData": {
+                    "Port": 0,
+                    "Type": "",
+                    "Version": ""
+                },
+                "TunnelServiceData": {
+                    "Version": "",
+                    "Type": ""
+                },
+                "OthersServicePort": [],
+                "OthersDataList": []
+            },
+        }
+        # self.whois_ = whoIs.WhoIsQuery()
+        self.shodan = Shodan.Shodan()
+        self.thread = 0
+        self.fileName = ""
+        self.searchDeepBool = False
+        self.rs_get = ""
+        self.data = {}
+        self.init()
 
-    def runDetail(self, Domain):
-        print("[+]"+Domain)
-        self.shodan.setHostAppend(socket.gethostbyname(Domain))
-        self.shodan.run()
-        print(str(self.shodan.getResult()))
-        pass
+    def run(self):
+        for Domain in self.data.keys():
 
-    def updateIndex(self, index):
-        self.id = str(int(self.id)+1)
+            #get whois info
+
+            #get shodan info
+            print("[+]"+Domain)
+            self.shodan.setHostAppend(socket.gethostbyname(Domain))
+            self.shodan.run()
+            self.data[Domain]["UseShodanInfoData"] = self.shodan.getResult()
+
+
+    def updateIndex(self, key):
+        self.data.update({key : self.struct})
+        print("Domain item Create")
 
     def updateStruct(self, key, data=None):
         try:
@@ -108,69 +68,54 @@ class DomainTracker():
             print(e)
 
     def ueage(self):
-        print("\nUsage\n")
-        print('Usage: ' + sys.argv[0] + ' Domain [Options]')
+        if len(sys.argv) < 2:
+            print("\n"+__file__+"-h or --help\nor\nExample : -D DomainTracker.py -google.com -t 2 -d\n")
+            sys.exit(1)
+        else:
+            parser = OptionParser(usage="%prog Domain [OPTIONS]")
+            parser.add_option("-d", "--deep", dest="setDeep", default=False,
+            help=
+                "Deep Search Using Searched Data, Is Advanced option But Find\n"\
+                "Data is Everything, So We do not make sure Result from Deep Searched\n"\
+                "This Option Do not support Multithread or Multiprocess if you want it\n"\
+                "do will remake this module\n"
+            , metavar="level")
+            parser.add_option("-f", "--file", dest="setFile", default="",
+            help=
+                "Domain List File .txt, Format Is 1 Line 1 Domain, not use ','\n"\
+                "And Do not Support Deep Search This Option"
+            , metavar="list.txt")
+            parser.add_option("-t", "--thread", dest="setThread", default=0, help="set Thread count", metavar="Num")
+            parser.add_option("-D", "--Domain", dest="setDomain", default=0, help="set Domain", metavar="Domain")
 
-        print("\nExample : DomainTracker.py google.com -t 2 -d\n")
-        print("[Options]")
-        print("  -f --file <Path&FileName>")
-        print(
-            "\tDomain List File .txt, Format Is 1 Line 1 Domain, not use ','\n\tAnd Do not Support Deep Search This Option")
-        print("  -t --thread <N>")
-        print("\tUsing thread and Max Count is N")
-        print("  -d --deep")
-        print(
-            "\tDeep Search Using Searched Data, Is Advanced option But Find\n"
-            "\tData is Everything, So We do not make sure Result from Deep Searched\n"
-            "\tThis Option Do not support Multithread or Multiprocess if you want it\n"
-            "\tdo will remake this module\n"
-        )
-        sys.exit(1)
+            return parser.parse_args()
 
-
-    def run(self):
-
+    def init(self):
         try:
-            if len(sys.argv[1:]) <= 0:
-                self.ueage()
-            else:
-                # input is char :
-                # input is String =
-
-                # opts, args = getopt.getopt(sys.argv[1:], "tdf:", ["Thread=", "THREAD=", "file=", "FILE=", "DEEP=", "deep=", "HELP", "help"])
-                args = sys.argv
-
-                index = 0
-                for arg in sys.argv:
-                    if arg.find(".") == -1:
-                        arg = arg.upper()
-                    else:
-                        self.struct[self.id]["Domain"] = arg
-                    if (arg == "-T" or (arg == "--THREAD")):
-                        try:
-                            self.thread = sys.argv[index+1]
-                            print("Set-Option is thread : " + str(self.thread))
-                        except:
-                            print("[t|T] N - 'N' is thread Count ")
-                    elif (arg == "-F" or (arg == "--File")):
-                        self.fileName = sys.argv[index+1]
-                        if self.fileName.find('"'):
-                            self.fileName = self.fileName.replace('"', "")
-                        else:
-                            self.fileName = self.fileName
-                        print("Set-Option is file : "+str(self.fileName))
-                    elif (arg == "-D") or (arg == "--DEEP"):
-                        self.searchDeepBool = True
-                        print("Set-Option is deep : " + str(self.searchDeepBool))
-                    index+=1
-                self.runDetail(self.struct[self.id]["Domain"])
-        except getopt.GetoptError as err:
+            options, args = self.ueage()
+            if options.setDomain:
+                print("Set Domain is "+options.setDomain)
+                self.updateIndex(options.setDomain)
+            if options.setDeep:
+                self.searchDeepBool = True
+                print("Set-Option is deep : " + str(self.searchDeepBool))
+            if int(options.setThread) > 0:
+                self.thread = options.setThread
+                print("set-Option : ", self.thread)
+            if options.setFile != "":
+                if self.fileName.find('"'):
+                    self.fileName = options.setFile.replace('"', "")
+                else:
+                    self.fileName = options.setFile
+                print("Set-Option is file : " + str(self.fileName))
+        except Exception as err:
             print(str(err))
             sys.exit(1)
 
 if __name__ == '__main__':
     process = DomainTracker()
     process.run()
+    print(sys.argv[1])
 
 
 
