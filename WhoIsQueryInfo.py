@@ -1,4 +1,3 @@
-
 # This is the part of "Domain Tracking Program"
 # It is work to qeury the 'Whois' info from DNS and IP
 # self.DBList is the result parsing Whois qeury
@@ -17,7 +16,6 @@
 # Ex)Naver.com
 
 """Registrar WHOIS Server : whois.gabia.com
-
 Domain Name: naver.com
 Registry Domain ID: 793803_DOMAIN_COM-VRSN
 Registrar WHOIS Server: whois.gabia.com
@@ -140,15 +138,24 @@ source:	KRNIC
 #Server_List = ['whois.arin.net', 'whois.ripe.net', 'whois.apnic.net', 'whois.lacnic']
 # Socket module import
 import socket
+import sys
 # IP Query Class
 class WhoIsQuery:
-    def __init__(self,DNS):
+    def __init__(self,*args):
+        self.Host = ""
+        self.DBList = []
+        if len(args) != 0:
+            self.run(list(args)[0])
+    # start the work
+    def run(self,DNS):
         self.Host = DNS
+        if self.Host.find("www.") != -1:
+            self.Host = self.Host.replace("www.", "")
+            if self.Host.find("http://") != -1:
+                self.Host = self.Host.replace("http://", "")
         self.HostIP = socket.gethostbyname(self.Host)
         self.IPWhoIsQueryInfo()
         self.DNSWhoIsQueryInfo()
-
-        self.DBList = []
         for IPQueryList in self.IPQueryList:
             self.Data = IPQueryList.strip()
             self.Data = self.Data.split("  ")
@@ -159,7 +166,6 @@ class WhoIsQuery:
             self.Data = self.Data.split("  ")
             self.Data = self.Data[0] + self.Data[-1]
             self.DBList.append(self.Data)
-
 
     # IP Whois Query
     def IPWhoIsQueryInfo(self):
@@ -249,31 +255,28 @@ Dns_Server_List = [
         self.temp = self.Res.split("\n")
         self.DnsQueryList = [i for i in self.temp if ": " in i]
 
-    # Domain Name
-    def Domain(self):
-        return str(self.Host)
-    # Domain IP
-    def Ip(self):
-        return str(self.HostIP)
+    # Get Key that you want as dictionary
+    def GetKey(self,*args):
+        self.Getkeylist = list(args)
+        self.Value = {}
+        if "Ip" in self.Getkeylist:
+            self.Temp = dict([("Ip",self.HostIP)])
+            self.Value.update(self.Temp)
+            self.Getkeylist.pop(self.Getkeylist.index("Ip"))
+        if "DNS" in self.Getkeylist:
+            self.Temp = dict([("DNS",self.Host)])
+            self.Value.update(self.Temp)
+            self.Getkeylist.pop(self.Getkeylist.index("DNS"))
+        for self.Checkkey in self.DBList:
+            for self.FindKeyList in self.Getkeylist:
+                if self.FindKeyList in self.Checkkey:
+                    self.Temp = self.Checkkey.split(":")
+                    self.Temp = dict([(self.Temp[0],self.Temp[1])])
+                    self.Value.update(self.Temp)
+        return self.Value
 
-    # Registrar WHOIS Server
-    def RegisterWhoisServer(self):
-        self.Value = [self.Findkey for self.Findkey in self.DBList if "Registrar WHOIS Server" in self.Findkey]
-        return self.Value[0]
-
-    # Registrant Email
-    def RegistrantEmail(self):
-        self.Value = [self.Findkey for self.Findkey in self.DBList if "Registrant Email" in self.Findkey]
-        return self.Value[0]
-
-    # Admin Email
-    def AdminEmail(self):
-        self.Value = [self.Findkey for self.Findkey in self.DBList if "Admin Email" in self.Findkey]
-        return self.Value[0]
-
-    # Admin Phone
-    def AdminPhone(self):
-        self.Value = [self.Findkey for self.Findkey in self.DBList if "Admin Phone" in self.Findkey]
-        return self.Value[0]
-
-
+if __name__ == '__main__':
+    Example = WhoIsQuery()
+    Example.run("naver.com")
+    ExampleResult = Example.GetKey("Ip","DNS","Registrant City","Admin Phone","Tech Email")
+    print(ExampleResult.items())
