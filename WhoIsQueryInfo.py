@@ -138,32 +138,39 @@ source:	KRNIC
 #Server_List = ['whois.arin.net', 'whois.ripe.net', 'whois.apnic.net', 'whois.lacnic']
 # Socket module import
 import socket
-import sys
+import re
 # IP Query Class
 class WhoIsQuery:
     def __init__(self,*args):
         self.Host = ""
         self.DBList = []
+        self.KeyList = []
         if len(args) != 0:
             self.run(list(args)[0])
+
     # start the work
     def run(self,DNS):
-        self.Host = DNS
+        if DNS.count(".") == 3:
+            self.HostIP = DNS
+        else:
+            self.Host = DNS
+            self.HostIP = socket.gethostbyname(self.Host)
         if self.Host.find("www.") != -1:
             self.Host = self.Host.replace("www.", "")
             if self.Host.find("http://") != -1:
                 self.Host = self.Host.replace("http://", "")
-        self.HostIP = socket.gethostbyname(self.Host)
         self.IPWhoIsQueryInfo()
         self.DNSWhoIsQueryInfo()
         for IPQueryList in self.IPQueryList:
             self.Data = IPQueryList.strip()
             self.Data = self.Data.split("  ")
+            self.KeyList.append(self.Data[0].replace(":",""))
             self.Data = self.Data[0] + self.Data[-1]
             self.DBList.append(self.Data)
         for DnsQueryList in self.DnsQueryList:
             self.Data = DnsQueryList.strip()
             self.Data = self.Data.split("  ")
+            self.KeyList.append(self.Data[0].replace(":",""))
             self.Data = self.Data[0] + self.Data[-1]
             self.DBList.append(self.Data)
 
@@ -275,8 +282,11 @@ Dns_Server_List = [
                     self.Value.update(self.Temp)
         return self.Value
 
+    def ShowKeyList(self):
+        return self.KeyList
 if __name__ == '__main__':
     Example = WhoIsQuery()
-    Example.run("naver.com")
+    Example.run("125.209.222.141")
     ExampleResult = Example.GetKey("Ip","DNS","Registrant City","Admin Phone","Tech Email")
     print(ExampleResult.items())
+    print(Example.ShowKeyList())
