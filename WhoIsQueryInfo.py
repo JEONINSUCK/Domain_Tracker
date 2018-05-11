@@ -135,13 +135,28 @@ source:	KRNIC
 """
 
 # This is Whois Qeury Server List
-#Server_List = ['whois.arin.net', 'whois.ripe.net', 'whois.apnic.net', 'whois.lacnic']
+
 # Socket module import
-import socket
-import re
+import socket , sys
+
 # IP Query Class
 class WhoIsQuery:
     def __init__(self,*args):
+        self.Ip_Server_List = [
+            'whois.arin.net',
+            'whois.ripe.net',
+            'whois.apnic.net',
+            'whois.lacnic'
+        ]
+        self.Dns_Server_List = [
+            "whois.verisign-grs.net",
+            "whois.markmonitor.com",
+            "whois.ibi.net",
+            "whois.krnic.net",
+            "whois.nic.co",
+            "whois.gabia.com"
+        ]
+
         self.Host = ""
         self.DBList = []
         self.KeyList = []
@@ -151,28 +166,23 @@ class WhoIsQuery:
     # start the work
     def run(self,DNS):
         if DNS.count(".") == 3:
-            self.HostIP = DNS
+            print("Argument must be DNS not IP")
         else:
             self.Host = DNS
-            self.HostIP = socket.gethostbyname(self.Host)
-        if self.Host.find("www.") != -1:
-            self.Host = self.Host.replace("www.", "")
-            if self.Host.find("http://") != -1:
-                self.Host = self.Host.replace("http://", "")
-        self.IPWhoIsQueryInfo()
-        self.DNSWhoIsQueryInfo()
-        for IPQueryList in self.IPQueryList:
-            self.Data = IPQueryList.strip()
-            self.Data = self.Data.split("  ")
-            self.KeyList.append(self.Data[0].replace(":",""))
-            self.Data = self.Data[0] + self.Data[-1]
-            self.DBList.append(self.Data)
-        for DnsQueryList in self.DnsQueryList:
-            self.Data = DnsQueryList.strip()
-            self.Data = self.Data.split("  ")
-            self.KeyList.append(self.Data[0].replace(":",""))
-            self.Data = self.Data[0] + self.Data[-1]
-            self.DBList.append(self.Data)
+            try:
+                self.HostIP = socket.gethostbyname(self.Host)
+            except socket.gaierror as e:
+                print(e)
+                sys.exit()
+            else:
+                if self.Host.find("www.") != -1:
+                    self.Host = self.Host.replace("www.", "")
+                    if self.Host.find("http://") != -1:
+                        self.Host = self.Host.replace("http://", "")
+                self.DNSWhoIsQueryInfo()
+                self.IPWhoIsQueryInfo()
+
+
 
     # IP Whois Query
     def IPWhoIsQueryInfo(self):
@@ -221,18 +231,21 @@ class WhoIsQuery:
         for i in self.First_Filter:
             self.temp += i
         self.IPQueryList = self.temp.split("\n")
+        for IPQueryList in self.IPQueryList:
+            self.Data = IPQueryList.strip()
+            self.Data = self.Data.split(":")
+            self.KeyList.append(self.Data[0].strip())
+            self.Data = self.Data[0].strip() + ":" + self.Data[-1].strip()
+            self.DBList.append(self.Data)
         self.IPSocket.close()
 
-    """
-Dns_Server_List = [
-"whois.verisign-grs.net","whois.markmonitor.com","whois.ibi.net","whois.krnic.net","whois.nic.co","whois.gabia.com"]
-"""
+
 
     # DNS Whois Query
     def DNSWhoIsQueryInfo(self):
         self.DnsSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.DnsSocket.connect(("whois.gabia.com", 43))
+            self.DnsSocket.connect(("whois.krnic.net", 43))
         except ConnectionRefusedError as e:
             self.DnsSocket.close()
             print(e)
@@ -255,16 +268,33 @@ Dns_Server_List = [
                 self.Res += self.Data.decode()
             else:
                 break
-            self.DnsData_Parsing()
+        self.DnsData_Parsing()
 
     # Dns Response Parsing
     def DnsData_Parsing(self):
-        self.temp = self.Res.split("\n")
-        self.DnsQueryList = [i for i in self.temp if ": " in i]
+        self.DnsQueryList = []
+        self.SplitKey = ["QUERY","Domain Name","도메인이름"]
+        self.temp = self.Res.split("\n\n")
+        for temp in self.temp:
+            if any(Splitkey in temp for Splitkey in self.SplitKey):
+                self.DnsQueryList.append(temp)
+        self.DnsQueryList = self.DnsQueryList[0].split("\n") + self.DnsQueryList[1].split("\n")
+
+        for DnsQueryList in self.DnsQueryList:
+            self.Data = DnsQueryList.strip()
+            self.Data = self.Data.split(":")
+            if self.Data[-1] == "":
+                continue
+            else:
+                self.KeyList.append(self.Data[0].strip())
+                self.Data = self.Data[0].strip()+ ":" + self.Data[-1].strip()
+                self.DBList.append(self.Data)
+
 
     # Get Key that you want as dictionary
     def GetKey(self,*args):
         self.Getkeylist = list(args)
+
         self.Value = {}
         if "Ip" in self.Getkeylist:
             self.Temp = dict([("Ip",self.HostIP)])
@@ -275,18 +305,17 @@ Dns_Server_List = [
             self.Value.update(self.Temp)
             self.Getkeylist.pop(self.Getkeylist.index("DNS"))
         for self.Checkkey in self.DBList:
-            for self.FindKeyList in self.Getkeylist:
-                if self.FindKeyList in self.Checkkey:
-                    self.Temp = self.Checkkey.split(":")
-                    self.Temp = dict([(self.Temp[0],self.Temp[1])])
-                    self.Value.update(self.Temp)
+            if any(self.FindKeyList in self.Checkkey for self.FindKeyList in self.Getkeylist):
+                self.Temp = self.Checkkey.split(":")
+                self.Temp = dict([(self.Temp[0], self.Temp[1])])
+                self.Value.update(self.Temp)
         return self.Value
 
     def ShowKeyList(self):
         return self.KeyList
 if __name__ == '__main__':
     Example = WhoIsQuery()
-    Example.run("125.209.222.141")
-    ExampleResult = Example.GetKey("Ip","DNS","Registrant City","Admin Phone","Tech Email")
+    Example.run("yahoo.com")
+    ExampleResult = Example.GetKey("Ip","DNS","Registrant City","Admin Phone","Tech Email","등록일")
     print(ExampleResult.items())
     print(Example.ShowKeyList())
