@@ -1,16 +1,19 @@
-import socket, sys, getopt, Shodan, whoIs
+#-*- coding: utf-8 -*-
+import socket, sys, Shodan
 from optparse import OptionParser
 
 class DomainTracker():
 
     def __init__(self):
         self.struct = {
-            "IP": "",
-            "SubDomainList": [],
-            "RegisterWhoisServer": "",
-            "RegisterEmail": "",
-            "AdminEmail": "",
-            "AdminPhone": "",
+                "default" : {
+                "IP": "",
+                "SubDomainList": [],
+                "RegisterWhoisServer": "",
+                "RegisterEmail": "",
+                "AdminEmail": "",
+                "AdminPhone": "",
+            },
             "UseShodanInfoData": {
                 "City": "",
                 "Country": "",
@@ -43,8 +46,9 @@ class DomainTracker():
 
     def run(self):
         for Domain in self.data.keys():
-
             #get whois info
+
+
 
             #get shodan info
             print("[+]"+Domain)
@@ -69,7 +73,7 @@ class DomainTracker():
 
     def ueage(self):
         if len(sys.argv) < 2:
-            print("\n"+__file__+"-h or --help\nor\nExample : -D DomainTracker.py -google.com -t 2 -d\n")
+            print("\n"+__file__+" -h or --help\nor\nExample : -D DomainTracker.py -google.com -t 2 -d\n")
             sys.exit(1)
         else:
             parser = OptionParser(usage="%prog Domain [OPTIONS]")
