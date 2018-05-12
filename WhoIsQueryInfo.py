@@ -217,6 +217,7 @@ class WhoIsQuery:
         elif "ERROR:101" in self.Res:
             print("ERROR: No Entries Found")
         else:
+            self.IPSocket.close()
             self.IpData_Parsing()
 
     # Ip Response Parsing
@@ -268,6 +269,7 @@ class WhoIsQuery:
                 self.Res += self.Data.decode()
             else:
                 break
+        self.DnsSocket.close()
         self.DnsData_Parsing()
 
     # Dns Response Parsing
@@ -305,7 +307,7 @@ class WhoIsQuery:
             self.Value.update(self.Temp)
             self.Getkeylist.pop(self.Getkeylist.index("DNS"))
         for self.Checkkey in self.DBList:
-            if any(self.FindKeyList in self.Checkkey for self.FindKeyList in self.Getkeylist):
+            if any(self.FindKeyList.upper() in self.Checkkey.upper() for self.FindKeyList in self.Getkeylist):
                 self.Temp = self.Checkkey.split(":")
                 self.Temp = dict([(self.Temp[0], self.Temp[1])])
                 self.Value.update(self.Temp)
@@ -316,6 +318,6 @@ class WhoIsQuery:
 if __name__ == '__main__':
     Example = WhoIsQuery()
     Example.run("yahoo.com")
-    ExampleResult = Example.GetKey("Ip","DNS","Registrant City","Admin Phone","Tech Email","등록일")
+    ExampleResult = Example.GetKey("Ip","Registrar WHOIS Server","Registrant Email","Admin Email","Admin Phone")
     print(ExampleResult.items())
     print(Example.ShowKeyList())
